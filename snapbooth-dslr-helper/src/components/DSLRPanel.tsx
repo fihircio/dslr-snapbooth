@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { getDSLRStatus, captureDSLRPhoto, printDSLRPhoto } from '../services/dslrService';
 import { DSLRWebSocketLiveView } from './DSLRWebSocketLiveView';
 import { uploadPhotoToPHP } from '../services/uploadService';
+import { DSLRSettingsPanel } from './DSLRSettingsPanel';
 
 export function DSLRPanel() {
   const [status, setStatus] = useState<{ connected: boolean, model: string | null } | null>(null);
@@ -51,6 +52,7 @@ export function DSLRPanel() {
   return (
     <div style={{ border: '1px solid #aaa', padding: 16, borderRadius: 8, maxWidth: 700 }}>
       <h2>DSLR Control Panel</h2>
+      <DSLRSettingsPanel />
       <div>Status: {status ? (status.connected ? `Connected (${status.model})` : 'Not Connected') : 'Loading...'}</div>
       <div style={{ margin: '12px 0' }}>
         <label>
