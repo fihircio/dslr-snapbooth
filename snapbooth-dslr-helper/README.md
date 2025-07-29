@@ -6,7 +6,7 @@ A Node.js helper for DSLR photobooths. Connects to DSLR cameras (via gphoto2), c
 
 ## Project Integration
 
-This backend is part of a larger photobooth system that includes a React/PHP portal for gallery, editing, and sharing. For full architecture, integration, and usage details, see [PHOTOBOOTH_GUIDE.md](./PHOTOBOOTH_GUIDE.md).
+This backend is part of a larger photobooth system that includes a React/PHP portal for gallery, editing, and sharing. For full architecture, integration, and usage details, see [PHOTOBOOTH_GUIDE.md](./docs/PHOTOBOOTH_GUIDE.md).
 
 ---
 
