@@ -2,210 +2,314 @@
 // Handles DSLR detection and photo capture using gphoto2
 
 const { exec } = require('child_process');
+const { promisify } = require('util');
+const fs = require('fs').promises;
 const path = require('path');
-const fs = require('fs');
 
-function logErrorToFile(error) {
-  const logPath = path.join(__dirname, '../error.log');
-  const msg = `[${new Date().toISOString()}] ${error}\n`;
-  fs.appendFileSync(logPath, msg);
+const execAsync = promisify(exec);
+
+// Helper function to kill PTPCamera and wait
+async function killPTPCamera() {
+  try {
+    await execAsync('sudo killall PTPCamera');
+    // Wait a moment for the process to fully terminate
+    await new Promise(resolve => setTimeout(resolve, 1000));
+  } catch (error) {
+    console.log('PTPCamera not running or already killed');
+  }
 }
 
-async function detectDSLR() {
-  return new Promise((resolve) => {
-    exec('gphoto2 --auto-detect', (error, stdout, stderr) => {
-      if (error || stderr) {
-        return resolve({ connected: false, model: null });
-      }
-      // Parse output for camera model
-      const lines = stdout.split('\n').filter(Boolean);
-      if (lines.length > 2) {
-        // Skip header lines
-        const modelLine = lines[2].trim();
-        return resolve({ connected: true, model: modelLine });
-      }
-      resolve({ connected: false, model: null });
-    });
-  });
+// Helper function to check if camera is accessible
+async function checkCameraAccess() {
+  try {
+    const { stdout } = await execAsync('gphoto2 --auto-detect');
+    return stdout.includes('Canon EOS');
+  } catch {
+    return false;
+  }
 }
 
-async function capturePhoto(options = {}) {
-  const outputDir = path.join(__dirname, '../static');
-  if (!fs.existsSync(outputDir)) fs.mkdirSync(outputDir, { recursive: true });
-  const filename = options.filename || `capture_${Date.now()}.jpg`;
-  const filePath = path.join(outputDir, filename);
+// Enhanced capture function with retry logic
+async function capturePhoto({ filename = 'dslr_photo.jpg', resolution, focus } = {}) {
+  const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+  const finalFilename = filename.replace('.jpg', `_${timestamp}.jpg`);
+  const filePath = path.join(__dirname, '../static', finalFilename);
 
-  // Always kill PTPCamera before capture
-  function killPTPCamera() {
-    return new Promise((resolve) => {
-      exec('sudo killall PTPCamera', (error, stdout, stderr) => {
-        if (error || stderr) {
-          logErrorToFile(`killall PTPCamera: ${error || stderr}`);
-        }
-        resolve();
-      });
-    });
-  }
-
-  // Build gphoto2 command
-  let cmd = '';
-  if (options.resolution) {
-    cmd += `gphoto2 --set-config imageformat=${options.resolution} && `;
-  }
-  if (options.focus) {
-    cmd += `gphoto2 --set-config focusmode=${options.focus} && `;
-  }
-  cmd += `gphoto2 --capture-image-and-download --filename=${filePath}`;
-
-  return new Promise(async (resolve) => {
+  try {
+    // Step 1: Kill PTPCamera first
     await killPTPCamera();
-    exec(cmd, (error, stdout, stderr) => {
-      if (error || stderr) {
-        logErrorToFile(error || stderr);
-        // Clean up temp file if it exists
-        if (fs.existsSync(filePath)) {
-          fs.unlinkSync(filePath);
-        }
-        return resolve({ success: false, filePath: null, base64: null });
-      }
-      resolve({ success: true, filePath, base64: null });
-    });
-  });
-}
+    
+    // Step 2: Wait and check camera access
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    
+    // Step 3: Try to detect camera
+    const { stdout: detectOutput } = await execAsync('gphoto2 --auto-detect');
+    if (!detectOutput.includes('Canon EOS')) {
+      throw new Error('Camera not detected after PTPCamera cleanup');
+    }
 
-// Get all camera settings and their current values
-async function getCameraSettings() {
-  return new Promise((resolve) => {
-    // List all configurable settings
-    // This will return a long string; parse as needed in the route
-    require('child_process').exec('gphoto2 --list-config', (err, stdout, stderr) => {
-      if (err || stderr) return resolve({ success: false, error: stderr || err.message });
-      const settings = stdout.split('\n').filter(Boolean);
-      // For each setting, get its current value
-      const promises = settings.map((setting) => new Promise((res) => {
-        require('child_process').exec(`gphoto2 --get-config ${setting}`, (e, out, se) => {
-          if (e || se) return res(null);
-          // Parse out value
-          const match = out.match(/Current:\s*(.*)/);
-          res({ setting, value: match ? match[1] : null });
-        });
-      }));
-      Promise.all(promises).then((results) => {
-        resolve({ success: true, settings: results.filter(Boolean) });
-      });
-    });
-  });
-}
+    // Step 4: Build gphoto2 command with options
+    let cmd = 'gphoto2 --capture-image-and-download';
+    if (filename) {
+      cmd += ` --filename=${filePath}`;
+    }
+    if (resolution) {
+      cmd += ` --set-config capturetarget=1`; // Set to memory card
+    }
 
-// Set a camera setting
-async function setCameraSettings(settings = {}) {
-  // settings: { iso: '...', aperture: '...', ... }
-  const cmds = Object.entries(settings).map(([key, value]) => `gphoto2 --set-config ${key}=${value}`);
-  return new Promise((resolve) => {
-    require('child_process').exec(cmds.join(' && '), (err, stdout, stderr) => {
-      if (err || stderr) return resolve({ success: false, error: stderr || err.message });
-      resolve({ success: true });
-    });
-  });
-}
+    // Step 5: Execute capture with sudo for better permissions
+    const { stdout, stderr } = await execAsync(`sudo ${cmd}`);
+    
+    if (stderr && stderr.includes('ERROR')) {
+      throw new Error(`Capture failed: ${stderr}`);
+    }
 
-// Burst/multi-shot capture
-async function burstCapture({ count = 3, interval = 500, filename = 'burst' } = {}) {
-  const outputDir = path.join(__dirname, '../static');
-  if (!fs.existsSync(outputDir)) fs.mkdirSync(outputDir, { recursive: true });
-  const shots = [];
-  for (let i = 0; i < count; i++) {
-    const shotName = `${filename}_${Date.now()}_${i + 1}.jpg`;
-    const filePath = path.join(outputDir, shotName);
-    // Capture image
+    // Step 6: Verify file was created
     try {
-      await new Promise((resolve, reject) => {
-        exec(`gphoto2 --capture-image-and-download --filename=${filePath}`, (error, stdout, stderr) => {
-          if (error || stderr) return reject(stderr || error.message);
-          resolve();
-        });
-      });
-      shots.push(filePath);
-    } catch (e) {
-      return { success: false, error: e, shots };
+      await fs.access(filePath);
+    } catch {
+      throw new Error('Captured file not found');
     }
-    // Wait interval before next shot (except after last)
-    if (i < count - 1) await new Promise(res => setTimeout(res, interval));
+
+    // Step 7: Read file as base64 for frontend
+    const imageBuffer = await fs.readFile(filePath);
+    const base64 = imageBuffer.toString('base64');
+
+    return {
+      success: true,
+      filePath: finalFilename,
+      base64,
+      message: 'Photo captured successfully'
+    };
+
+  } catch (error) {
+    console.error('Capture error:', error.message);
+    
+    // Log the error with timestamp
+    const errorLog = `[${new Date().toISOString()}] ${error.message}\n`;
+    await fs.appendFile(path.join(__dirname, '../error.log'), errorLog);
+    
+    return {
+      success: false,
+      error: error.message,
+      message: 'Failed to capture photo. Check error.log for details.'
+    };
   }
-  return { success: true, shots };
 }
 
-let videoProcess = null;
-let videoFilePath = null;
+// Enhanced burst capture with better error handling
+async function burstCapture({ count = 3, interval = 500, filename = 'burst' } = {}) {
+  const images = [];
+  const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+  
+  try {
+    // Kill PTPCamera before burst
+    await killPTPCamera();
+    await new Promise(resolve => setTimeout(resolve, 2000));
 
-// Start video recording
-async function startVideoRecording({ filename = 'video_capture.mp4' } = {}) {
-  const outputDir = path.join(__dirname, '../static');
-  if (!fs.existsSync(outputDir)) fs.mkdirSync(outputDir, { recursive: true });
-  videoFilePath = path.join(outputDir, filename);
-  return new Promise((resolve, reject) => {
-    // Start gphoto2 --capture-movie (may require camera support)
-    const { spawn } = require('child_process');
-    videoProcess = spawn('gphoto2', ['--capture-movie', `--stdout`]);
-    const fsStream = fs.createWriteStream(videoFilePath);
-    videoProcess.stdout.pipe(fsStream);
-    videoProcess.stderr.on('data', (data) => {
-      // Optionally log errors
-    });
-    videoProcess.on('spawn', () => {
-      resolve({ success: true, filePath: videoFilePath });
-    });
-    videoProcess.on('error', (err) => {
-      videoProcess = null;
-      reject({ success: false, error: err.message });
-    });
-  });
-}
-
-// Stop video recording
-async function stopVideoRecording() {
-  return new Promise((resolve) => {
-    if (videoProcess) {
-      videoProcess.kill('SIGINT');
-      videoProcess = null;
-      resolve({ success: true, filePath: videoFilePath });
-    } else {
-      resolve({ success: false, error: 'No video recording in progress' });
+    for (let i = 0; i < count; i++) {
+      const burstFilename = `${filename}_${i + 1}_${timestamp}.jpg`;
+      const result = await capturePhoto({ filename: burstFilename });
+      
+      if (result.success) {
+        images.push(result.filePath);
+      } else {
+        console.error(`Burst capture ${i + 1} failed:`, result.error);
+      }
+      
+      if (i < count - 1) {
+        await new Promise(resolve => setTimeout(resolve, interval));
+      }
     }
-  });
+
+    return {
+      success: images.length > 0,
+      images,
+      message: `Captured ${images.length}/${count} images`
+    };
+
+  } catch (error) {
+    return {
+      success: false,
+      error: error.message,
+      images: []
+    };
+  }
 }
 
-// List images on the camera
-async function listCameraImages() {
-  return new Promise((resolve) => {
-    require('child_process').exec('gphoto2 --list-files', (err, stdout, stderr) => {
-      if (err || stderr) return resolve({ success: false, error: stderr || err.message });
-      // Parse output for file numbers and names
-      const files = [];
-      const lines = stdout.split('\n');
-      for (const line of lines) {
-        const match = line.match(/#(\d+)\s+(.+\.(jpg|jpeg|png|cr2|nef|arw|raw|mp4|mov))/i);
-        if (match) {
-          files.push({ number: match[1], name: match[2] });
+// Enhanced DSLR detection
+async function detectDSLR() {
+  try {
+    await killPTPCamera();
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    const { stdout } = await execAsync('gphoto2 --auto-detect');
+    const lines = stdout.split('\n');
+    
+    for (const line of lines) {
+      if (line.includes('Canon EOS')) {
+        const parts = line.trim().split(/\s+/);
+        const model = parts.slice(0, -1).join(' '); // Everything except the port
+        return {
+          connected: true,
+          model,
+          port: parts[parts.length - 1]
+        };
+      }
+    }
+    
+    return { connected: false, model: null };
+    
+  } catch (error) {
+    console.error('DSLR detection error:', error.message);
+    return { connected: false, model: null };
+  }
+}
+
+// Enhanced settings functions
+async function getCameraSettings() {
+  try {
+    await killPTPCamera();
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    const { stdout } = await execAsync('gphoto2 --list-config');
+    const settings = {};
+    
+    stdout.split('\n').forEach(line => {
+      if (line.includes('/')) {
+        const [key, value] = line.split(':').map(s => s.trim());
+        if (key && value) {
+          settings[key] = value;
         }
       }
-      resolve({ success: true, files });
     });
-  });
+    
+    return { success: true, settings };
+    
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
 }
 
-// Download a specific image from the camera
+async function setCameraSettings(settings) {
+  try {
+    await killPTPCamera();
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    for (const [key, value] of Object.entries(settings)) {
+      await execAsync(`gphoto2 --set-config ${key}=${value}`);
+    }
+    
+    return { success: true, message: 'Settings updated' };
+    
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+}
+
+// Enhanced image listing
+async function listCameraImages() {
+  try {
+    await killPTPCamera();
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    const { stdout } = await execAsync('gphoto2 --list-files');
+    const images = [];
+    
+    stdout.split('\n').forEach(line => {
+      if (line.includes('.JPG') || line.includes('.jpg')) {
+        const match = line.match(/(\d+)\s+(.+\.(?:JPG|jpg))/);
+        if (match) {
+          images.push(match[2]);
+        }
+      }
+    });
+    
+    return { success: true, images };
+    
+  } catch (error) {
+    return { success: false, error: error.message, images: [] };
+  }
+}
+
+// Enhanced image download
 async function downloadCameraImage({ number, name }) {
-  const outputDir = path.join(__dirname, '../static');
-  if (!fs.existsSync(outputDir)) fs.mkdirSync(outputDir, { recursive: true });
-  const filePath = path.join(outputDir, name);
-  return new Promise((resolve) => {
-    require('child_process').exec(`gphoto2 --get-file ${number} --filename=${filePath}`, (err, stdout, stderr) => {
-      if (err || stderr) return resolve({ success: false, error: stderr || err.message });
-      resolve({ success: true, filePath });
-    });
-  });
+  try {
+    await killPTPCamera();
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    const downloadPath = path.join(__dirname, '../static', name);
+    await execAsync(`gphoto2 --get-file ${number} --filename=${downloadPath}`);
+    
+    return { success: true, filePath: downloadPath };
+    
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
 }
 
-module.exports = { detectDSLR, capturePhoto, getCameraSettings, setCameraSettings, burstCapture, startVideoRecording, stopVideoRecording, listCameraImages, downloadCameraImage };
+// Video recording functions
+async function startVideoRecording({ filename = 'video.mov' } = {}) {
+  try {
+    await killPTPCamera();
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    // Start video recording
+    await execAsync('gphoto2 --set-config capturemode=1'); // Set to movie mode
+    await execAsync('gphoto2 --trigger-capture');
+    
+    return { success: true, message: 'Video recording started' };
+    
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+}
+
+async function stopVideoRecording() {
+  try {
+    await killPTPCamera();
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    // Stop recording and download
+    await execAsync('gphoto2 --trigger-capture');
+    const { stdout } = await execAsync('gphoto2 --list-files');
+    
+    // Find the latest video file
+    const lines = stdout.split('\n');
+    let videoFile = null;
+    
+    for (const line of lines) {
+      if (line.includes('.MOV') || line.includes('.mov')) {
+        const match = line.match(/(\d+)\s+(.+\.(?:MOV|mov))/);
+        if (match) {
+          videoFile = match[2];
+          break;
+        }
+      }
+    }
+    
+    if (videoFile) {
+      const downloadPath = path.join(__dirname, '../static', videoFile);
+      await execAsync(`gphoto2 --get-file ${videoFile} --filename=${downloadPath}`);
+      return { success: true, filePath: videoFile };
+    }
+    
+    return { success: false, error: 'No video file found' };
+    
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+}
+
+module.exports = {
+  capturePhoto,
+  burstCapture,
+  detectDSLR,
+  getCameraSettings,
+  setCameraSettings,
+  listCameraImages,
+  downloadCameraImage,
+  startVideoRecording,
+  stopVideoRecording
+};
 

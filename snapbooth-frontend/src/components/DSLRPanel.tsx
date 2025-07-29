@@ -10,7 +10,7 @@ import { DSLRGalleryPanel } from './DSLRGalleryPanel';
 
 export function DSLRPanel() {
   const [status, setStatus] = useState<{ connected: boolean, model: string | null } | null>(null);
-  const [captureResult, setCaptureResult] = useState<{ success: boolean, filePath: string | null, base64: string | null } | null>(null);
+  const [captureResult, setCaptureResult] = useState<{ success: boolean, filePath: string | null, base64: string | null, message?: string, error?: string } | null>(null);
   const [filename, setFilename] = useState('dslr_photo.jpg');
   const [resolution, setResolution] = useState('');
   const [focus, setFocus] = useState('');
@@ -33,7 +33,7 @@ export function DSLRPanel() {
   }, []);
 
   const handleCapture = async (e?: React.KeyboardEvent | React.MouseEvent) => {
-    console.log('Capture button clicked');
+    if (e && 'key' in e && e.key !== 'Enter' && e.key !== ' ') return;
     setLoading(true);
     setCaptureResult(null);
     setUploadMsg('');
@@ -63,6 +63,28 @@ export function DSLRPanel() {
       const result = await printDSLRPhoto(captureResult.filePath);
       setPrintMsg(result.success ? 'Print sent!' : `Print failed: ${result.message}`);
     }
+  };
+
+  const getTroubleshootingTips = () => {
+    return (
+      <div style={{ 
+        background: '#fff3cd', 
+        border: '1px solid #ffeaa7', 
+        borderRadius: 4, 
+        padding: 12, 
+        margin: '8px 0',
+        fontSize: 14
+      }}>
+        <strong>🔧 Troubleshooting Tips:</strong>
+        <ul style={{ margin: '8px 0', paddingLeft: 20 }}>
+          <li>Make sure your camera is in "PC Connection" mode</li>
+          <li>Try disconnecting and reconnecting the USB cable</li>
+          <li>Run <code>./reset-camera.sh</code> in the backend directory</li>
+          <li>Check that no other apps are using the camera</li>
+          <li>Ensure camera battery is charged</li>
+        </ul>
+      </div>
+    );
   };
 
   return (
@@ -99,25 +121,34 @@ export function DSLRPanel() {
           <div style={{ margin: '12px 0' }}>
             <DSLRWebSocketLiveView />
           </div>
-          {captureResult && captureResult.filePath && (
+          {captureResult && (
             <div style={{ margin: '12px 0' }}>
-              <div>Last Capture:</div>
-              <img
-                src={captureResult.base64 ? `data:image/jpeg;base64,${captureResult.base64}` : `/static/${captureResult.filePath}`}
-                alt="Last Capture"
-                style={{ maxWidth: 320, border: '1px solid #ccc' }}
-              />
-              <div>
-                <button
-                  onClick={handlePrint}
-                  onKeyDown={handlePrint}
-                  style={{ marginTop: 8 }}
-                  aria-label="Print This Photo"
-                >
-                  Print This Photo
-                </button>
-                {printMsg && <span style={{ marginLeft: 8 }}>{printMsg}</span>}
-              </div>
+              {captureResult.success ? (
+                <>
+                  <div>Last Capture:</div>
+                  <img
+                    src={captureResult.base64 ? `data:image/jpeg;base64,${captureResult.base64}` : `/static/${captureResult.filePath}`}
+                    alt="Last Capture"
+                    style={{ maxWidth: 320, border: '1px solid #ccc' }}
+                  />
+                  <div>
+                    <button
+                      onClick={handlePrint}
+                      onKeyDown={handlePrint}
+                      style={{ marginTop: 8 }}
+                      aria-label="Print This Photo"
+                    >
+                      Print This Photo
+                    </button>
+                    {printMsg && <span style={{ marginLeft: 8 }}>{printMsg}</span>}
+                  </div>
+                </>
+              ) : (
+                <div style={{ color: 'red', margin: '8px 0' }}>
+                  <strong>Capture failed:</strong> {captureResult.message || captureResult.error}
+                  {getTroubleshootingTips()}
+                </div>
+              )}
             </div>
           )}
           {uploadMsg && <div style={{ color: uploadMsg.includes('fail') ? 'red' : 'green', margin: '8px 0' }}>{uploadMsg}</div>}
@@ -129,4 +160,4 @@ export function DSLRPanel() {
       )}
     </div>
   );
-}
+} 

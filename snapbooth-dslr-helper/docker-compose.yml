@@ -1,0 +1,45 @@
+version: '3.8'
+
+services:
+  dslr-helper:
+    build: .
+    container_name: dslr-snapbooth-helper
+    ports:
+      - "3000:3000"
+    environment:
+      - DSLR_API_TOKEN=${DSLR_API_TOKEN:-yourtoken}
+      - NODE_ENV=${NODE_ENV:-development}
+    volumes:
+      # Mount static directory for captured photos
+      - ./static:/app/static
+      # Mount error logs
+      - ./error.log:/app/error.log
+      # Mount USB devices (Linux only)
+      - /dev/bus/usb:/dev/bus/usb
+    devices:
+      # Grant access to USB devices
+      - /dev/bus/usb:/dev/bus/usb
+    restart: unless-stopped
+    networks:
+      - dslr-network
+
+  # Optional: Add frontend service
+  frontend:
+    build: ../snapbooth-frontend
+    container_name: dslr-snapbooth-frontend
+    ports:
+      - "5173:5173"
+    environment:
+      - VITE_API_URL=http://localhost:3000
+    depends_on:
+      - dslr-helper
+    restart: unless-stopped
+    networks:
+      - dslr-network
+
+networks:
+  dslr-network:
+    driver: bridge
+
+volumes:
+  static-data: 

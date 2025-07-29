@@ -1,107 +1,189 @@
-# snapbooth-dslr-helper
+# DSLR Snapbooth Helper
 
-A Node.js helper for DSLR photobooths. Connects to DSLR cameras (via gphoto2), captures photos, streams live view, prints images, and exposes REST + WebSocket APIs.
+A Node.js backend service that provides REST API and WebSocket endpoints for controlling DSLR cameras via gphoto2. Designed to work with the snapbooth-frontend React application.
 
----
+## 🚀 Quick Start
 
-## Project Integration
+### Prerequisites
+- **Node.js**: v18.17.0+ (v20+ recommended)
+- **gphoto2**: Camera control library
+- **DSLR Camera**: Connected via USB
 
-This backend is part of a larger photobooth system that includes a React/PHP portal for gallery, editing, and sharing. For full architecture, integration, and usage details, see [PHOTOBOOTH_GUIDE.md](./docs/PHOTOBOOTH_GUIDE.md).
-[INTEGRATION_PLAN.md](./docs/INTEGRATION_PLAN.md).
+### Installation
 
----
-
-## Core Responsibilities
-- Connect to DSLR (via USB)
-- Capture photo on demand
-- Provide Live View frames
-- Print captured image
-- Expose REST + WebSocket endpoints
-
-## Tech Stack
-- **DSLR control:** gphoto2 (via subprocess)
-- **REST API:** Express.js
-- **Live view streaming:** WebSocket + MJPEG or base64 frames
-- **Printing:** lp or cups (Linux-based)
-- **Background queue:** Node.js async/worker
-
-## Folder Structure
-```
-snapbooth-dslr-helper/
-├── capture/                    # gphoto2 wrappers
-│   └── controller.js
-├── stream/                     # live view stream logic
-│   └── streamer.js
-├── print/                      # optional printer utils
-│   └── printer.js
-├── api/                        # REST + WebSocket server
-│   ├── server.js
-│   └── routes/
-├── config/                     # camera config or system settings
-├── static/                     # captured photos (temp)
-├── main.js                     # Entry point
-├── requirements.txt            # (for reference)
-└── README.md
-```
-
-## API Endpoints
-| Endpoint   | Method | Description                        |
-|------------|--------|------------------------------------|
-| /status    | GET    | Check DSLR connection and health    |
-| /capture   | POST   | Capture a photo (see below)         |
-| /liveview  | WS     | Start live preview stream (base64)  |
-| /print     | POST   | Print a specified photo (see below) |
-
-### /api/capture
-- **POST**
-- **Body:**
-  - `filename` (optional): string, custom filename for the photo
-  - `resolution` (optional): string, e.g. '1920x1080' (sets image format)
-  - `focus` (optional): string, e.g. 'auto', 'manual' (sets focus mode)
-- **Returns:** `{ success, filePath, base64 }`
-
-**Example:**
+#### macOS
 ```bash
+# Install dependencies
+brew install gphoto2 node
+
+# Clone and setup
+git clone <repository-url>
+cd snapbooth-dslr-helper
+npm install
+
+# Reset camera connection (if needed)
+sudo ./reset-camera.sh
+
+# Start the service
+sudo ./start-dslr-helper.sh
+```
+
+#### Linux
+```bash
+# Install dependencies
+sudo apt update
+sudo apt install gphoto2 libgphoto2-dev nodejs npm
+
+# Clone and setup
+git clone <repository-url>
+cd snapbooth-dslr-helper
+npm install
+
+# Start the service
+sudo ./start-dslr-helper.sh
+```
+
+#### Windows
+See [docs/WINDOWS_SETUP.md](docs/WINDOWS_SETUP.md) for complete Windows setup guide.
+
+### Configuration
+```bash
+# Set your API token
+export DSLR_API_TOKEN=your_secure_token_here
+
+# Or create .env file
+echo "DSLR_API_TOKEN=your_secure_token_here" > .env
+```
+
+## 📚 Documentation
+
+For comprehensive documentation, see the [docs/](docs/) folder:
+
+- **[docs/README.md](docs/README.md)** - Documentation index and navigation
+- **[docs/PHOTOBOOTH_GUIDE.md](docs/PHOTOBOOTH_GUIDE.md)** - Complete system architecture and setup
+- **[docs/INTEGRATION_PLAN.md](docs/INTEGRATION_PLAN.md)** - Integration with React + PHP system
+- **[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)** - Production deployment guide
+- **[docs/WINDOWS_SETUP.md](docs/WINDOWS_SETUP.md)** - Windows setup and troubleshooting
+
+## 🎯 Features
+
+- ✅ **Photo Capture**: Single shot and burst capture
+- ✅ **Live View**: WebSocket streaming of camera preview
+- ✅ **Camera Settings**: Get and set camera configurations
+- ✅ **Image Gallery**: List and download images from camera
+- ✅ **Video Recording**: Start/stop video recording
+- ✅ **Print Support**: Print captured photos
+- ✅ **Cross-Platform**: macOS, Linux, Windows (WSL2/Docker)
+- ✅ **macOS Compatibility**: Handles PTPCamera conflicts automatically
+
+## 🔧 API Endpoints
+
+### Authentication
+All endpoints require the `X-DSLR-Token` header:
+```
+X-DSLR-Token: your_secure_token_here
+```
+
+### Quick Test
+```bash
+# Test camera status
+curl -H "X-DSLR-Token: yourtoken" http://localhost:3000/api/status
+
+# Test photo capture
 curl -X POST http://localhost:3000/api/capture \
   -H "Content-Type: application/json" \
-  -d '{"filename":"test.jpg","resolution":"1920x1080","focus":"auto"}'
+  -H "X-DSLR-Token: yourtoken" \
+  -d '{"filename": "test.jpg"}'
 ```
 
-### /api/print
-- **POST**
-- **Body:**
-  - `filePath`: string, path to the image file (must be .jpg, .jpeg, or .png)
-- **Returns:** `{ success, message }`
+For complete API documentation, see [docs/PHOTOBOOTH_GUIDE.md](docs/PHOTOBOOTH_GUIDE.md).
 
-**Example:**
+## 🐳 Docker Deployment
+
 ```bash
-curl -X POST http://localhost:3000/api/print \
-  -H "Content-Type: application/json" \
-  -d '{"filePath":"./static/test.jpg"}'
+# Quick Docker setup
+docker-compose up -d
+
+# Or build manually
+docker build -t dslr-helper .
+docker run -p 3000:3000 --device=/dev/bus/usb dslr-helper
 ```
 
-### /liveview (WebSocket)
-- **Connect:** `ws://localhost:3000`
-- **Start streaming:** Send `{ "type": "liveview" }` as JSON
-- **Receive:** `{ type: 'frame', data: <base64>, error? }` every ~500ms
-- **Close:** Just close the WebSocket
+## 🆘 Troubleshooting
 
-**Example (JavaScript):**
-```js
-const ws = new WebSocket('ws://localhost:3000');
-ws.onopen = () => ws.send(JSON.stringify({ type: 'liveview' }));
-ws.onmessage = (msg) => {
-  const data = JSON.parse(msg.data);
-  if (data.type === 'frame' && data.data) {
-    // data.data is a base64-encoded JPEG
-    // Display or process the frame
-  }
-};
+### Common Issues
+
+#### Camera Not Detected
+```bash
+# Test manual detection
+gphoto2 --auto-detect
+
+# Reset camera connection (macOS)
+sudo ./reset-camera.sh
 ```
 
-## Build Phases
-1. **Phase 1:** DSLR Photo Capture via gphoto2
-2. **Phase 2:** REST API for Capture
-3. **Phase 3:** WebSocket Live Preview
-4. **Phase 4:** Print Support (optional)
+#### Service Won't Start
+```bash
+# Check logs
+tail -f error.log
+
+# Test manual start
+node main.js
+```
+
+#### Permission Issues
+```bash
+# Run with sudo (Linux/macOS)
+sudo ./start-dslr-helper.sh
+
+# Or add user to video group (Linux)
+sudo usermod -a -G video $USER
+```
+
+For detailed troubleshooting, see the platform-specific guides in [docs/](docs/).
+
+## 🚀 Production Deployment
+
+### Using PM2
+```bash
+npm install -g pm2
+pm2 start main.js --name "dslr-helper"
+pm2 save
+pm2 startup
+```
+
+### Using Docker
+```bash
+docker-compose -f docker-compose.yml up -d
+```
+
+For complete production setup, see [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
+
+## 🔗 Integration
+
+This helper is designed to work with:
+- **snapbooth-frontend**: React application for UI
+- **PHP Backend**: For uploads, gallery, and sharing features
+
+For integration details, see [docs/INTEGRATION_PLAN.md](docs/INTEGRATION_PLAN.md).
+
+## 📄 License
+
+[Your License Here]
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Test thoroughly
+5. Submit a pull request
+
+## 📞 Support
+
+For issues and questions:
+- Check the troubleshooting sections in [docs/](docs/)
+- Review the error logs
+- Test manual gphoto2 commands
+- Open an issue on GitHub
 

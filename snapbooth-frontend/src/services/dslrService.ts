@@ -42,7 +42,7 @@ export async function setCameraSettings(settings: Record<string, any>) {
     body: JSON.stringify(settings),
   });
   return res.json();
-}
+} 
 
 export async function burstDSLRPhotos(config: { count: number, intervalMs?: number, filenamePrefix?: string }) {
   const res = await fetch('http://localhost:3000/api/burst', {

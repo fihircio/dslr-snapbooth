@@ -167,3 +167,34 @@ ERROR: Could not capture.
 *** Error ***              
 An error occurred in the io-library ('Could not claim the USB device'): Could not claim interface 0 (No such file or directory). Make sure no other program (MacOS PTPCamera service) or kernel module (such as sdc2xx, stv680, spca50x) is using the device and you have read/write access to the device.
 
+[2025-07-29T03:04:18.720Z] killall PTPCamera: Error: Command failed: sudo killall PTPCamera
+No matching processes were found
+
+[2025-07-29T03:04:19.135Z] 
+*** Error ***              
+PTP General Error
+
+*** Error ***              
+An error occurred in the io-library ('Unspecified error'): Could not release interface 0 (No such file or directory).
+ERROR: Could not capture image.
+ERROR: Could not capture.
+
+*** Error ***              
+An error occurred in the io-library ('Could not claim the USB device'): Could not claim interface 0 (No such file or directory). Make sure no other program (MacOS PTPCamera service) or kernel module (such as sdc2xx, stv680, spca50x) is using the device and you have read/write access to the device.
+
+[2025-07-29T03:04:41.480Z] killall PTPCamera: Error: Command failed: sudo killall PTPCamera
+No matching processes were found
+
+[2025-07-29T03:04:41.666Z] 
+*** Error ***              
+PTP General Error
+
+*** Error ***              
+An error occurred in the io-library ('Unspecified error'): Could not release interface 0 (No such file or directory).
+ERROR: Could not capture image.
+ERROR: Could not capture.
+
+*** Error ***              
+An error occurred in the io-library ('Could not claim the USB device'): Could not claim interface 0 (No such file or directory). Make sure no other program (MacOS PTPCamera service) or kernel module (such as sdc2xx, stv680, spca50x) is using the device and you have read/write access to the device.
+
+[2025-07-29T06:56:50.321Z] Camera not detected after PTPCamera cleanup
