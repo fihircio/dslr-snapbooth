@@ -6,6 +6,7 @@ import { DSLRSettingsPanel } from './DSLRSettingsPanel';
 import { DSLRBurstPanel } from './DSLRBurstPanel';
 import { DSLRVideoPanel } from './DSLRVideoPanel';
 import { DSLRStatusBar } from './DSLRStatusBar';
+import { DSLRGalleryPanel } from './DSLRGalleryPanel';
 
 export function DSLRPanel() {
   const [status, setStatus] = useState<{ connected: boolean, model: string | null } | null>(null);
@@ -32,7 +33,7 @@ export function DSLRPanel() {
   }, []);
 
   const handleCapture = async (e?: React.KeyboardEvent | React.MouseEvent) => {
-    if (e && 'key' in e && e.key !== 'Enter' && e.key !== ' ') return;
+    console.log('Capture button clicked');
     setLoading(true);
     setCaptureResult(null);
     setUploadMsg('');
@@ -73,6 +74,7 @@ export function DSLRPanel() {
           <DSLRSettingsPanel />
           <DSLRBurstPanel />
           <DSLRVideoPanel />
+          <DSLRGalleryPanel />
           <div>Status: {status ? (status.connected ? `Connected (${status.model})` : 'Not Connected') : 'Loading...'}</div>
           <div style={{ margin: '12px 0' }}>
             <label>
@@ -127,4 +129,4 @@ export function DSLRPanel() {
       )}
     </div>
   );
-} 
+}

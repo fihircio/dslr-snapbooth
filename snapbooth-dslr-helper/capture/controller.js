@@ -5,6 +5,12 @@ const { exec } = require('child_process');
 const path = require('path');
 const fs = require('fs');
 
+function logErrorToFile(error) {
+  const logPath = path.join(__dirname, '../error.log');
+  const msg = `[${new Date().toISOString()}] ${error}\n`;
+  fs.appendFileSync(logPath, msg);
+}
+
 async function detectDSLR() {
   return new Promise((resolve) => {
     exec('gphoto2 --auto-detect', (error, stdout, stderr) => {
@@ -29,6 +35,18 @@ async function capturePhoto(options = {}) {
   const filename = options.filename || `capture_${Date.now()}.jpg`;
   const filePath = path.join(outputDir, filename);
 
+  // Always kill PTPCamera before capture
+  function killPTPCamera() {
+    return new Promise((resolve) => {
+      exec('sudo killall PTPCamera', (error, stdout, stderr) => {
+        if (error || stderr) {
+          logErrorToFile(`killall PTPCamera: ${error || stderr}`);
+        }
+        resolve();
+      });
+    });
+  }
+
   // Build gphoto2 command
   let cmd = '';
   if (options.resolution) {
@@ -39,9 +57,15 @@ async function capturePhoto(options = {}) {
   }
   cmd += `gphoto2 --capture-image-and-download --filename=${filePath}`;
 
-  return new Promise((resolve) => {
+  return new Promise(async (resolve) => {
+    await killPTPCamera();
     exec(cmd, (error, stdout, stderr) => {
       if (error || stderr) {
+        logErrorToFile(error || stderr);
+        // Clean up temp file if it exists
+        if (fs.existsSync(filePath)) {
+          fs.unlinkSync(filePath);
+        }
         return resolve({ success: false, filePath: null, base64: null });
       }
       resolve({ success: true, filePath, base64: null });

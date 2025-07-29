@@ -1,0 +1,169 @@
+[2025-07-28T14:42:00.707Z] 
+*** Error ***              
+PTP General Error
+
+*** Error ***              
+An error occurred in the io-library ('Unspecified error'): Could not release interface 0 (No such file or directory).
+ERROR: Could not capture image.
+ERROR: Could not capture.
+
+*** Error ***              
+An error occurred in the io-library ('Could not claim the USB device'): Could not claim interface 0 (No such file or directory). Make sure no other program (MacOS PTPCamera service) or kernel module (such as sdc2xx, stv680, spca50x) is using the device and you have read/write access to the device.
+
+[2025-07-28T14:43:33.050Z] 
+*** Error ***              
+Canon EOS Half-Press failed (0x2002: PTP General Error)
+ERROR: Could not capture image.
+ERROR: Could not capture.
+
+[2025-07-28T14:44:01.667Z] 
+*** Error ***              
+Canon EOS Half-Press failed (0x02ff: PTP I/O Error)
+ERROR: Could not capture image.
+ERROR: Could not capture.
+
+*** Error ***              
+Canon EOS Get Changes failed (0x02f9: PTP No Device)
+
+[2025-07-28T14:44:35.290Z] 
+*** Error ***              
+PTP General Error
+
+*** Error ***              
+An error occurred in the io-library ('Unspecified error'): Could not release interface 0 (No such file or directory).
+ERROR: Could not capture image.
+ERROR: Could not capture.
+
+*** Error ***              
+An error occurred in the io-library ('Could not claim the USB device'): Could not claim interface 0 (No such file or directory). Make sure no other program (MacOS PTPCamera service) or kernel module (such as sdc2xx, stv680, spca50x) is using the device and you have read/write access to the device.
+
+[2025-07-28T14:44:48.271Z] 
+*** Error ***              
+Canon EOS Half-Press failed (0x2002: PTP General Error)
+ERROR: Could not capture image.
+ERROR: Could not capture.
+
+[2025-07-28T14:45:56.993Z] Error: Command failed: gphoto2 --capture-image-and-download --filename=/Users/fihiromar/Desktop/WORKS/20250610_PHOTOBOOTH/WIP/dslr-snapbooth/snapbooth-dslr-helper/static/dslr_photo.jpg
+
+*** Error ***              
+An error occurred in the io-library ('Could not claim the USB device'): Could not claim interface 0 (No such file or directory). Make sure no other program (MacOS PTPCamera service) or kernel module (such as sdc2xx, stv680, spca50x) is using the device and you have read/write access to the device.
+ERROR: Could not capture image.
+ERROR: Could not capture.
+*** Error (-53: 'Could not claim the USB device') ***       
+
+
+[2025-07-28T14:47:02.722Z] 
+*** Error ***              
+PTP General Error
+
+*** Error ***              
+An error occurred in the io-library ('Unspecified error'): Could not release interface 0 (No such file or directory).
+ERROR: Could not capture image.
+ERROR: Could not capture.
+
+*** Error ***              
+An error occurred in the io-library ('Could not claim the USB device'): Could not claim interface 0 (No such file or directory). Make sure no other program (MacOS PTPCamera service) or kernel module (such as sdc2xx, stv680, spca50x) is using the device and you have read/write access to the device.
+
+[2025-07-28T14:52:11.266Z] 
+*** Error ***              
+PTP General Error
+
+*** Error ***              
+An error occurred in the io-library ('Unspecified error'): Could not release interface 0 (No such file or directory).
+ERROR: Could not capture image.
+ERROR: Could not capture.
+
+*** Error ***              
+An error occurred in the io-library ('Could not claim the USB device'): Could not claim interface 0 (No such file or directory). Make sure no other program (MacOS PTPCamera service) or kernel module (such as sdc2xx, stv680, spca50x) is using the device and you have read/write access to the device.
+
+[2025-07-28T14:53:41.826Z] 
+*** Error ***              
+PTP General Error
+
+*** Error ***              
+An error occurred in the io-library ('Unspecified error'): Could not release interface 0 (No such file or directory).
+ERROR: Could not capture image.
+ERROR: Could not capture.
+
+*** Error ***              
+An error occurred in the io-library ('Could not claim the USB device'): Could not claim interface 0 (No such file or directory). Make sure no other program (MacOS PTPCamera service) or kernel module (such as sdc2xx, stv680, spca50x) is using the device and you have read/write access to the device.
+
+[2025-07-28T14:54:26.995Z] Error: Command failed: gphoto2 --capture-image-and-download --filename=/Users/fihiromar/Desktop/WORKS/20250610_PHOTOBOOTH/WIP/dslr-snapbooth/snapbooth-dslr-helper/static/dslr_photo.jpg
+
+[2025-07-28T14:54:57.728Z] Error: Command failed: gphoto2 --capture-image-and-download --filename=/Users/fihiromar/Desktop/WORKS/20250610_PHOTOBOOTH/WIP/dslr-snapbooth/snapbooth-dslr-helper/static/dslr_photo.jpg
+*** Error: No camera found. ***
+
+
+[2025-07-29T01:55:06.398Z] 
+*** Error ***              
+PTP General Error
+
+*** Error ***              
+An error occurred in the io-library ('Unspecified error'): Could not reattach kernel driver of camera device.
+ERROR: Could not capture image.
+ERROR: Could not capture.
+
+*** Error ***              
+An error occurred in the io-library ('Bad parameters'): Could not reattach kernel driver of camera device.
+
+[2025-07-29T02:01:29.761Z] killall PTPCamera: Error: Command failed: sudo killall PTPCamera
+No matching processes were found
+
+[2025-07-29T02:01:30.181Z] 
+*** Error ***              
+PTP General Error
+
+*** Error ***              
+An error occurred in the io-library ('Unspecified error'): Could not release interface 0 (No such file or directory).
+ERROR: Could not capture image.
+ERROR: Could not capture.
+
+*** Error ***              
+An error occurred in the io-library ('Could not claim the USB device'): Could not claim interface 0 (No such file or directory). Make sure no other program (MacOS PTPCamera service) or kernel module (such as sdc2xx, stv680, spca50x) is using the device and you have read/write access to the device.
+
+[2025-07-29T02:04:09.573Z] killall PTPCamera: Error: Command failed: sudo killall PTPCamera
+No matching processes were found
+
+[2025-07-29T02:04:12.375Z] Error: Command failed: gphoto2 --capture-image-and-download --filename=/Users/fihiromar/Desktop/WORKS/20250610_PHOTOBOOTH/WIP/dslr-snapbooth/snapbooth-dslr-helper/static/dslr_photo.jpg
+
+*** Error ***              
+PTP General Error
+
+*** Error ***              
+An error occurred in the io-library ('Unspecified error'): No error description available
+ERROR: Could not capture image.
+ERROR: Could not capture.
+
+*** Error ***              
+PTP No Device
+
+[2025-07-29T02:04:34.491Z] killall PTPCamera: Error: Command failed: sudo killall PTPCamera
+No matching processes were found
+
+[2025-07-29T02:04:34.949Z] 
+*** Error ***              
+PTP General Error
+
+*** Error ***              
+An error occurred in the io-library ('Unspecified error'): Could not release interface 0 (No such file or directory).
+ERROR: Could not capture image.
+ERROR: Could not capture.
+
+*** Error ***              
+An error occurred in the io-library ('Could not claim the USB device'): Could not claim interface 0 (No such file or directory). Make sure no other program (MacOS PTPCamera service) or kernel module (such as sdc2xx, stv680, spca50x) is using the device and you have read/write access to the device.
+
+[2025-07-29T02:09:29.391Z] killall PTPCamera: Error: Command failed: sudo killall PTPCamera
+No matching processes were found
+
+[2025-07-29T02:09:29.732Z] 
+*** Error ***              
+PTP General Error
+
+*** Error ***              
+An error occurred in the io-library ('Unspecified error'): Could not release interface 0 (No such file or directory).
+ERROR: Could not capture image.
+ERROR: Could not capture.
+
+*** Error ***              
+An error occurred in the io-library ('Could not claim the USB device'): Could not claim interface 0 (No such file or directory). Make sure no other program (MacOS PTPCamera service) or kernel module (such as sdc2xx, stv680, spca50x) is using the device and you have read/write access to the device.
+

@@ -11,8 +11,8 @@ function startLiveView(ws) {
   // Poll every 500ms for a new frame
   liveViewInterval = setInterval(() => {
     const framePath = path.join(__dirname, '../static/liveview.jpg');
-    // gphoto2 --capture-movie-frame --filename=framePath
-    exec(`gphoto2 --capture-movie-frame --filename=${framePath}`, (error, stdout, stderr) => {
+    // Use capture-preview instead of capture-movie-frame
+    exec(`gphoto2 --capture-preview --filename=${framePath}`, (error, stdout, stderr) => {
       if (!error && fs.existsSync(framePath)) {
         const img = fs.readFileSync(framePath);
         const base64 = img.toString('base64');

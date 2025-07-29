@@ -5,7 +5,13 @@ const router = express.Router();
 // GET /api/images - list images on the camera
 router.get('/images', async (req, res) => {
   const result = await listCameraImages();
-  res.json(result);
+  // If result.images is an array of filenames, add index as number
+  if (result.success && Array.isArray(result.images)) {
+    const images = result.images.map((name, idx) => ({ number: idx + 1, name }));
+    res.json({ success: true, images });
+  } else {
+    res.json(result);
+  }
 });
 
 // GET /api/download?number=...&name=... - download a specific image

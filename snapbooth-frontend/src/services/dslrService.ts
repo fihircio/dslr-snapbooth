@@ -82,4 +82,17 @@ export async function checkDSLRHelperStatus(): Promise<{ running: boolean; conne
   } catch {
     return { running: false, connected: false };
   }
+}
+
+export type DSLRImageInfo = { number: number; name: string };
+
+export async function listDSLRImages(): Promise<{ success: boolean; images: DSLRImageInfo[]; message?: string }> {
+  const res = await fetch('http://localhost:3000/api/images', {
+    headers: { 'X-DSLR-Token': DSLR_API_TOKEN },
+  });
+  return res.json();
+}
+
+export function getDSLRImageDownloadUrl(image: DSLRImageInfo) {
+  return `http://localhost:3000/api/download?number=${image.number}&name=${encodeURIComponent(image.name)}`;
 } 
