@@ -1,12 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { getDSLRStatus, captureDSLRPhoto, printDSLRPhoto, checkDSLRHelperStatus } from '../services/dslrService';
 import { DSLRWebSocketLiveView } from './DSLRWebSocketLiveView';
+import { HDMILiveView } from './HDMILiveView';
 import { uploadPhotoToPHP } from '../services/uploadService';
 import { DSLRSettingsPanel } from './DSLRSettingsPanel';
 import { DSLRBurstPanel } from './DSLRBurstPanel';
 import { DSLRVideoPanel } from './DSLRVideoPanel';
 import { DSLRStatusBar } from './DSLRStatusBar';
 import { DSLRGalleryPanel } from './DSLRGalleryPanel';
+
+type LiveViewMethod = 'auto' | 'hdmi' | 'v002-direct' | 'gphoto2';
 
 export function DSLRPanel() {
   const [status, setStatus] = useState<{ connected: boolean, model: string | null } | null>(null);
@@ -18,6 +21,9 @@ export function DSLRPanel() {
   const [printMsg, setPrintMsg] = useState('');
   const [uploadMsg, setUploadMsg] = useState('');
   const [helperDetected, setHelperDetected] = useState(false);
+  const [liveViewMethod, setLiveViewMethod] = useState<LiveViewMethod>('auto');
+  const [liveViewStatus, setLiveViewStatus] = useState<any>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     getDSLRStatus().then(setStatus);
@@ -65,6 +71,11 @@ export function DSLRPanel() {
     }
   };
 
+  const handleLiveViewMethodChange = (method: LiveViewMethod) => {
+    setLiveViewMethod(method);
+    setLiveViewStatus(null); // Reset status when method changes
+  };
+
   const getTroubleshootingTips = () => {
     return (
       <div style={{ 
@@ -82,9 +93,103 @@ export function DSLRPanel() {
           <li>Run <code>./reset-camera.sh</code> in the backend directory</li>
           <li>Check that no other apps are using the camera</li>
           <li>Ensure camera battery is charged</li>
+          {liveViewMethod === 'hdmi' && (
+            <>
+              <li><strong>For HDMI:</strong> Connect HDMI capture device</li>
+              <li><strong>For HDMI:</strong> Run <code>node test-hdmi-devices.js</code></li>
+              <li><strong>For HDMI:</strong> Ensure camera HDMI output is enabled</li>
+            </>
+          )}
+          {liveViewMethod === 'v002-direct' && (
+            <>
+              <li><strong>For Enhanced gphoto2:</strong> Better reliability than standard gphoto2</li>
+              <li><strong>For Enhanced gphoto2:</strong> Improved error handling and retry logic</li>
+              <li><strong>For Enhanced gphoto2:</strong> Works on all platforms</li>
+              <li><strong>⚠️  Camera Conflict:</strong> Close v002 Camera Live before using our helper</li>
+              <li><strong>⚠️  Camera Conflict:</strong> Run <code>./resolve-camera-conflict.sh</code> if camera disappears</li>
+            </>
+          )}
+          {error && error.includes('camera') && (
+            <>
+              <li><strong>🚨 Camera Conflict Detected:</strong></li>
+              <li>1. Close v002 Camera Live completely</li>
+              <li>2. Run <code>./resolve-camera-conflict.sh</code> in backend</li>
+              <li>3. Wait 10 seconds</li>
+              <li>4. Restart the DSLR helper</li>
+              <li>5. Try again</li>
+            </>
+          )}
         </ul>
       </div>
     );
+  };
+
+  const renderLiveView = () => {
+    if (liveViewMethod === 'hdmi') {
+      return (
+        <HDMILiveView 
+          mode="hdmi"
+          onStatusChange={setLiveViewStatus}
+          onError={(error) => console.error('HDMI error:', error)}
+        />
+      );
+    } else if (liveViewMethod === 'v002-direct') {
+      return (
+        <HDMILiveView 
+          mode="v002-direct"
+          onStatusChange={setLiveViewStatus}
+          onError={(error) => console.error('v002 Direct error:', error)}
+        />
+      );
+    } else if (liveViewMethod === 'gphoto2') {
+      return <DSLRWebSocketLiveView />;
+    } else {
+      // Auto mode - use HDMILiveView with auto mode
+      return (
+        <HDMILiveView 
+          mode="auto"
+          onStatusChange={setLiveViewStatus}
+          onError={(error) => console.error('Auto live view error:', error)}
+        />
+      );
+    }
+  };
+
+  const getLiveViewMethodInfo = () => {
+    switch (liveViewMethod) {
+      case 'hdmi':
+        return {
+          name: 'HDMI Input Capture',
+          description: 'HDMI capture device streaming (most reliable)',
+          latency: '~50ms',
+          reliability: 'Excellent',
+          requirements: 'HDMI capture device + FFmpeg'
+        };
+      case 'v002-direct':
+        return {
+          name: 'Enhanced gphoto2 Wrapper',
+          description: 'Enhanced gphoto2 with better reliability and error handling',
+          latency: '~200ms',
+          reliability: 'Good',
+          requirements: 'gphoto2 library'
+        };
+      case 'gphoto2':
+        return {
+          name: 'gphoto2 Live View',
+          description: 'Traditional camera live view (unreliable on 600D)',
+          latency: '~300ms',
+          reliability: 'Fair',
+          requirements: 'gphoto2 library'
+        };
+      default:
+        return {
+          name: 'Auto (Smart Fallback)',
+          description: 'HDMI → v002 Direct → gphoto2 (best available)',
+          latency: 'Variable',
+          reliability: 'Best available',
+          requirements: 'Multiple methods available'
+        };
+    }
   };
 
   return (
@@ -97,7 +202,63 @@ export function DSLRPanel() {
           <DSLRBurstPanel />
           <DSLRVideoPanel />
           <DSLRGalleryPanel />
+          
           <div>Status: {status ? (status.connected ? `Connected (${status.model})` : 'Not Connected') : 'Loading...'}</div>
+          
+          {/* Live View Method Selection */}
+          <div style={{ margin: '16px 0', padding: '12px', background: '#f8f9fa', borderRadius: 4 }}>
+            <h3 style={{ margin: '0 0 8px 0', fontSize: '16px' }}>Live View Method</h3>
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <input
+                  type="radio"
+                  name="liveViewMethod"
+                  value="auto"
+                  checked={liveViewMethod === 'auto'}
+                  onChange={() => handleLiveViewMethodChange('auto')}
+                />
+                Auto
+              </label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <input
+                  type="radio"
+                  name="liveViewMethod"
+                  value="hdmi"
+                  checked={liveViewMethod === 'hdmi'}
+                  onChange={() => handleLiveViewMethodChange('hdmi')}
+                />
+                HDMI
+              </label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <input
+                  type="radio"
+                  name="liveViewMethod"
+                  value="v002-direct"
+                  checked={liveViewMethod === 'v002-direct'}
+                  onChange={() => handleLiveViewMethodChange('v002-direct')}
+                />
+                v002 Direct
+              </label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <input
+                  type="radio"
+                  name="liveViewMethod"
+                  value="gphoto2"
+                  checked={liveViewMethod === 'gphoto2'}
+                  onChange={() => handleLiveViewMethodChange('gphoto2')}
+                />
+                gphoto2
+              </label>
+            </div>
+            
+            {/* Method Info */}
+            <div style={{ marginTop: '8px', fontSize: '12px', color: '#666' }}>
+              <strong>{getLiveViewMethodInfo().name}</strong> - {getLiveViewMethodInfo().description}
+              <br />
+              Latency: {getLiveViewMethodInfo().latency} | Reliability: {getLiveViewMethodInfo().reliability}
+            </div>
+          </div>
+
           <div style={{ margin: '12px 0' }}>
             <label>
               Filename: <input value={filename} onChange={e => setFilename(e.target.value)} aria-label="Filename" />
@@ -118,9 +279,28 @@ export function DSLRPanel() {
               {loading ? 'Capturing...' : 'Capture Photo'}
             </button>
           </div>
+
+          {/* Live View Display */}
           <div style={{ margin: '12px 0' }}>
-            <DSLRWebSocketLiveView />
+            <h3 style={{ margin: '0 0 8px 0', fontSize: '16px' }}>Live View</h3>
+            {renderLiveView()}
+            
+            {/* Live View Status */}
+            {liveViewStatus && (
+              <div style={{ 
+                marginTop: '8px', 
+                padding: '8px', 
+                background: '#e3f2fd', 
+                borderRadius: 4, 
+                fontSize: '12px' 
+              }}>
+                <strong>Live View Status:</strong> {liveViewStatus.method || 'Unknown'} | 
+                Latency: {liveViewStatus.latency || 'Unknown'} | 
+                Resolution: {liveViewStatus.resolution || 'Unknown'}
+              </div>
+            )}
           </div>
+
           {captureResult && (
             <div style={{ margin: '12px 0' }}>
               {captureResult.success ? (

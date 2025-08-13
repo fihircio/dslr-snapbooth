@@ -1,24 +1,30 @@
 #!/bin/bash
 
-# Kill any existing PTPCamera processes that might interfere with gphoto2
-echo "Killing PTPCamera processes..."
-sudo killall PTPCamera 2>/dev/null || true
-sleep 2
+# Select how live view will be sourced: gphoto2 | hdmi | v002-direct | uvc | syphon | auto
+LIVEVIEW_MODE="${LIVEVIEW_MODE:-auto}"
+echo "LIVEVIEW_MODE=${LIVEVIEW_MODE}"
 
-# Kill any existing gphoto2 processes
-echo "Killing any existing gphoto2 processes..."
-sudo pkill -f gphoto2 2>/dev/null || true
-sleep 1
-
-# Check if camera is accessible
-echo "Checking camera accessibility..."
-if gphoto2 --auto-detect | grep -q "Canon EOS"; then
-    echo "✅ Camera detected and accessible"
-else
-    echo "⚠️  Camera not detected or not accessible"
-    echo "Trying to reset USB permissions..."
+# Only kill PTPCamera/gphoto2 when using the gphoto2 path
+if [ "$LIVEVIEW_MODE" = "gphoto2" ]; then
+    echo "Killing PTPCamera processes for gphoto2 mode..."
     sudo killall PTPCamera 2>/dev/null || true
-    sleep 3
+    sleep 2
+
+    echo "Killing any existing gphoto2 processes..."
+    sudo pkill -f gphoto2 2>/dev/null || true
+    sleep 1
+
+    echo "Checking camera accessibility via gphoto2..."
+    if gphoto2 --auto-detect | grep -q "Canon EOS"; then
+        echo "✅ Camera detected and accessible via gphoto2"
+    else
+        echo "⚠️  Camera not detected via gphoto2"
+        echo "Trying to reset USB permissions..."
+        sudo killall PTPCamera 2>/dev/null || true
+        sleep 3
+    fi
+else
+    echo "Non-gphoto2 mode (${LIVEVIEW_MODE}) → skipping PTPCamera/gphoto2 kill"
 fi
 
 # Ensure static directory exists

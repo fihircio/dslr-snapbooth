@@ -1,0 +1,3 @@
+DSLR Helper starting...
+DSLR Helper server running on port 3000
+WebSocket server available at ws://localhost:3000

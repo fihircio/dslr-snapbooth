@@ -1,10 +1,10 @@
 const express = require('express');
-const { detectDSLR } = require('../../capture/controller');
+const { detectDSLRSafe } = require('../../capture/controller');
 
 const router = express.Router();
 
 router.get('/status', async (req, res) => {
-  const status = await detectDSLR();
+  const status = await detectDSLRSafe();
   res.json(status);
 });
 

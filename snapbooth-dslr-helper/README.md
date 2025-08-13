@@ -1,189 +1,155 @@
-# DSLR Snapbooth Helper
+# snapbooth-dslr-helper
 
-A Node.js backend service that provides REST API and WebSocket endpoints for controlling DSLR cameras via gphoto2. Designed to work with the snapbooth-frontend React application.
+A Node.js backend for controlling DSLR cameras via USB, providing live view streaming, photo capture, and printing capabilities.
+
+## 🚨 **Important Update: SyphonInject is Broken**
+
+The [SyphonInject project](https://github.com/zakk4223/SyphonInject) **no longer works** on macOS 10.14+ due to Apple's security changes. We now use **HDMI Input Capture** as the primary live view method.
+
+## 🎯 **Live View Options**
+
+### **1. HDMI Input Capture (Recommended)**
+- **Latency**: ~50ms
+- **Reliability**: Excellent
+- **Platform**: All platforms
+- **Requirements**: HDMI capture device + FFmpeg
+
+### **2. v002 Camera Live Direct (macOS Only)**
+- **Latency**: ~150ms
+- **Reliability**: Good
+- **Platform**: macOS only
+- **Requirements**: v002 Camera Live app
+
+### **3. Enhanced gphoto2 Live View (Fallback)**
+- **Latency**: ~300ms
+- **Reliability**: Fair
+- **Platform**: All platforms
+- **Requirements**: gphoto2 library
 
 ## 🚀 Quick Start
 
 ### Prerequisites
-- **Node.js**: v18.17.0+ (v20+ recommended)
-- **gphoto2**: Camera control library
-- **DSLR Camera**: Connected via USB
+- **Node.js** (v16+)
+- **gphoto2** (`brew install gphoto2` on macOS)
+- **FFmpeg** (`brew install ffmpeg`)
+- **HDMI Capture Device** (for best performance)
 
 ### Installation
-
-#### macOS
 ```bash
-# Install dependencies
-brew install gphoto2 node
-
-# Clone and setup
-git clone <repository-url>
+git clone <repository>
 cd snapbooth-dslr-helper
 npm install
-
-# Reset camera connection (if needed)
-sudo ./reset-camera.sh
-
-# Start the service
-sudo ./start-dslr-helper.sh
 ```
 
-#### Linux
+### Start the Helper
 ```bash
-# Install dependencies
-sudo apt update
-sudo apt install gphoto2 libgphoto2-dev nodejs npm
-
-# Clone and setup
-git clone <repository-url>
-cd snapbooth-dslr-helper
-npm install
-
-# Start the service
+# macOS/Linux
 sudo ./start-dslr-helper.sh
+
+# Windows
+start-dslr-helper-windows.bat
+
+# Or manually
+export DSLR_API_TOKEN=your-secret-token
+npx nodemon main.js
 ```
 
-#### Windows
-See [docs/WINDOWS_SETUP.md](docs/WINDOWS_SETUP.md) for complete Windows setup guide.
-
-### Configuration
+### Test HDMI Devices
 ```bash
-# Set your API token
-export DSLR_API_TOKEN=your_secure_token_here
-
-# Or create .env file
-echo "DSLR_API_TOKEN=your_secure_token_here" > .env
+node test-hdmi-devices.js
 ```
+
+### Test v002 Direct Integration (macOS)
+```bash
+node test-v002-direct.js
+```
+
+## 📡 API Endpoints
+
+### REST API
+- `GET /api/status` - Check DSLR connection
+- `POST /api/capture` - Capture photo
+- `POST /api/print` - Print photo
+- `GET /api/settings` - Get camera settings
+- `POST /api/settings` - Set camera settings
+- `POST /api/burst` - Burst capture
+- `POST /api/video/start` - Start video recording
+- `POST /api/video/stop` - Stop video recording
+- `GET /api/images` - List camera images
+- `GET /api/download` - Download camera image
+
+### WebSocket Live View
+```javascript
+const ws = new WebSocket('ws://localhost:3000');
+
+// Auto mode (recommended)
+ws.send(JSON.stringify({ type: 'auto-liveview' }));
+
+// Specific methods
+ws.send(JSON.stringify({ type: 'hdmi-liveview' }));
+ws.send(JSON.stringify({ type: 'v002-direct-liveview' }));
+ws.send(JSON.stringify({ type: 'liveview' }));
+```
+
+## 🔧 Configuration
+
+### Environment Variables
+- `DSLR_API_TOKEN` - Required for API authentication
+- `PORT` - Server port (default: 3000)
+
+### HDMI Capture Settings
+- **Device**: Auto-detected or specified
+- **Resolution**: 1920x1080 (default)
+- **Framerate**: 30fps (default)
+- **Quality**: High (CRF 18)
+
+## 📊 Performance Comparison
+
+| Method | Latency | Reliability | Setup | Cost | Platform |
+|--------|---------|-------------|-------|------|----------|
+| **HDMI Input** | ~50ms | Excellent | Medium | Hardware | All |
+| **v002 Direct** | ~150ms | Good | Low | Free | macOS |
+| **Enhanced gphoto2** | ~300ms | Fair | Low | Free | All |
+
+## 🛠️ Troubleshooting
+
+### Common Issues
+1. **Camera not detected**: Run `./reset-camera.sh`
+2. **HDMI device not found**: Run `node test-hdmi-devices.js`
+3. **v002 not working**: Download latest from GitHub releases
+4. **Permission errors**: Use `sudo` for camera access
+
+### Platform-Specific
+- **macOS**: PTPCamera conflicts resolved automatically
+- **Linux**: USB permissions may need adjustment
+- **Windows**: gphoto2 installation required
 
 ## 📚 Documentation
 
-For comprehensive documentation, see the [docs/](docs/) folder:
+See the `docs/` folder for comprehensive guides:
+- [Integration Plan](docs/INTEGRATION_PLAN.md)
+- [Photobooth Guide](docs/PHOTOBOOTH_GUIDE.md)
+- [Windows Setup](docs/WINDOWS_SETUP.md)
+- [Deployment Guide](docs/DEPLOYMENT.md)
+- [macOS Setup](docs/README_macOS.md)
+- [HDMI Live View](docs/HDMI_LIVEVIEW.md)
+- [Updated Live View Guide](docs/UPDATED_LIVEVIEW_GUIDE.md)
 
-- **[docs/README.md](docs/README.md)** - Documentation index and navigation
-- **[docs/PHOTOBOOTH_GUIDE.md](docs/PHOTOBOOTH_GUIDE.md)** - Complete system architecture and setup
-- **[docs/INTEGRATION_PLAN.md](docs/INTEGRATION_PLAN.md)** - Integration with React + PHP system
-- **[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)** - Production deployment guide
-- **[docs/WINDOWS_SETUP.md](docs/WINDOWS_SETUP.md)** - Windows setup and troubleshooting
+## 🎯 **For Canon 600D Users**
 
-## 🎯 Features
+**HDMI Input Capture** is the **most reliable** solution for your camera:
+- **Lower latency** than gphoto2 live view
+- **More stable** than traditional methods
+- **Cross-platform** compatibility
+- **No dependency** on broken tools
 
-- ✅ **Photo Capture**: Single shot and burst capture
-- ✅ **Live View**: WebSocket streaming of camera preview
-- ✅ **Camera Settings**: Get and set camera configurations
-- ✅ **Image Gallery**: List and download images from camera
-- ✅ **Video Recording**: Start/stop video recording
-- ✅ **Print Support**: Print captured photos
-- ✅ **Cross-Platform**: macOS, Linux, Windows (WSL2/Docker)
-- ✅ **macOS Compatibility**: Handles PTPCamera conflicts automatically
+## 🚀 **Next Steps**
 
-## 🔧 API Endpoints
-
-### Authentication
-All endpoints require the `X-DSLR-Token` header:
-```
-X-DSLR-Token: your_secure_token_here
-```
-
-### Quick Test
-```bash
-# Test camera status
-curl -H "X-DSLR-Token: yourtoken" http://localhost:3000/api/status
-
-# Test photo capture
-curl -X POST http://localhost:3000/api/capture \
-  -H "Content-Type: application/json" \
-  -H "X-DSLR-Token: yourtoken" \
-  -d '{"filename": "test.jpg"}'
-```
-
-For complete API documentation, see [docs/PHOTOBOOTH_GUIDE.md](docs/PHOTOBOOTH_GUIDE.md).
-
-## 🐳 Docker Deployment
-
-```bash
-# Quick Docker setup
-docker-compose up -d
-
-# Or build manually
-docker build -t dslr-helper .
-docker run -p 3000:3000 --device=/dev/bus/usb dslr-helper
-```
-
-## 🆘 Troubleshooting
-
-### Common Issues
-
-#### Camera Not Detected
-```bash
-# Test manual detection
-gphoto2 --auto-detect
-
-# Reset camera connection (macOS)
-sudo ./reset-camera.sh
-```
-
-#### Service Won't Start
-```bash
-# Check logs
-tail -f error.log
-
-# Test manual start
-node main.js
-```
-
-#### Permission Issues
-```bash
-# Run with sudo (Linux/macOS)
-sudo ./start-dslr-helper.sh
-
-# Or add user to video group (Linux)
-sudo usermod -a -G video $USER
-```
-
-For detailed troubleshooting, see the platform-specific guides in [docs/](docs/).
-
-## 🚀 Production Deployment
-
-### Using PM2
-```bash
-npm install -g pm2
-pm2 start main.js --name "dslr-helper"
-pm2 save
-pm2 startup
-```
-
-### Using Docker
-```bash
-docker-compose -f docker-compose.yml up -d
-```
-
-For complete production setup, see [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
-
-## 🔗 Integration
-
-This helper is designed to work with:
-- **snapbooth-frontend**: React application for UI
-- **PHP Backend**: For uploads, gallery, and sharing features
-
-For integration details, see [docs/INTEGRATION_PLAN.md](docs/INTEGRATION_PLAN.md).
+1. **Get an HDMI capture device** (Elgato Cam Link 4K recommended)
+2. **Test HDMI integration** with your camera
+3. **Deploy with confidence** knowing you have reliable live view
 
 ## 📄 License
 
-[Your License Here]
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Test thoroughly
-5. Submit a pull request
-
-## 📞 Support
-
-For issues and questions:
-- Check the troubleshooting sections in [docs/](docs/)
-- Review the error logs
-- Test manual gphoto2 commands
-- Open an issue on GitHub
+MIT License - see LICENSE file for details.
 

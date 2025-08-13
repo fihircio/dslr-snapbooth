@@ -166,6 +166,24 @@ async function detectDSLR() {
   }
 }
 
+// Safe detection that avoids sudo and does not kill PTPCamera (for status/health checks)
+async function detectDSLRSafe() {
+  try {
+    const { stdout } = await execAsync('gphoto2 --auto-detect', { timeout: 2000 });
+    const lines = stdout.split('\n');
+    for (const line of lines) {
+      if (line.includes('Canon EOS')) {
+        const parts = line.trim().split(/\s+/);
+        const model = parts.slice(0, -1).join(' ');
+        return { connected: true, model };
+      }
+    }
+    return { connected: false, model: null };
+  } catch {
+    return { connected: false, model: null };
+  }
+}
+
 // Enhanced settings functions
 async function getCameraSettings() {
   try {
@@ -305,6 +323,7 @@ module.exports = {
   capturePhoto,
   burstCapture,
   detectDSLR,
+  detectDSLRSafe,
   getCameraSettings,
   setCameraSettings,
   listCameraImages,

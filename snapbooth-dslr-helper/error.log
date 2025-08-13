@@ -198,3 +198,28 @@ ERROR: Could not capture.
 An error occurred in the io-library ('Could not claim the USB device'): Could not claim interface 0 (No such file or directory). Make sure no other program (MacOS PTPCamera service) or kernel module (such as sdc2xx, stv680, spca50x) is using the device and you have read/write access to the device.
 
 [2025-07-29T06:56:50.321Z] Camera not detected after PTPCamera cleanup
+[2025-08-01T01:51:23.300Z] Camera not detected after PTPCamera cleanup
+[2025-08-01T04:31:45.490Z] Capture failed: 
+*** Error ***              
+PTP Timeout
+
+*** Error ***              
+An error occurred in the io-library ('Timeout reading from or writing to the port'): No error description available
+ERROR: Could not capture image.
+ERROR: Could not capture.
+
+*** Error ***              
+PTP I/O Error
+
+*** Error ***              
+An error occurred in the io-library ('I/O problem'): Could not reattach kernel driver of camera device.
+
+[2025-08-13T08:37:28.697Z] Command failed: sudo gphoto2 --capture-image-and-download --filename=/Users/fihiromar/Desktop/WORKS/20250610_PHOTOBOOTH/WIP/dslr-snapbooth/snapbooth-dslr-helper/static/dslr_photo_2025-08-13T08-37-19-638Z.jpg
+
+*** Error ***              
+Canon EOS Full-Press failed (0x2019: PTP Device Busy)
+ERROR: Could not capture image.
+ERROR: Could not capture.
+*** Error (-110: 'I/O in progress') ***       
+
+
